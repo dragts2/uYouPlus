@@ -2,7 +2,8 @@ workflows:
   ios-testflight:
     name: iOS TestFlight Build
     instance_type: mac_mini_m1
-    
+    integrations:
+      app_store_connect: Code Magic
     environment:
       ios_signing:
         distribution_type: app_store # Required for TestFlight
