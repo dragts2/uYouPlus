@@ -50,9 +50,6 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration # This uses the credentials configured in Codemagic UI
-        api_key: ${APPSTORE_API_KEY} # Add this as an environment variable in Codemagic UI
-        key_id: ${APPSTORE_KEY_ID} # Add this as an environment variable in Codemagic UI
-        issuer_id: ${APPSTORE_ISSUER_ID} # Add this as an environment variable in Codemagic UI
         submit_to_testflight: true
         beta_groups: # Optional: specify TestFlight beta testing groups
           - "Internal Testers"
