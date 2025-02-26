@@ -55,6 +55,3 @@ workflows:
         beta_groups: # Optional: specify TestFlight beta testing groups
           - "Internal Testers"
         # submit_to_app_store: false  # Keep this off until ready for App Store
-      email:
-        recipients:
-          - ${EMAIL} # Use an environment variable for email
