@@ -1,77 +1,65 @@
 workflows:
-  ios-workflow:
-    name: iOS Production Workflow
+  ios-testflight:
+    name: iOS TestFlight Build
+    instance_type: mac_mini_m1
     environment:
-      groups:
-        - app_store_credentials  # Set these in Codemagic UI
+      ios_signing:
+        distribution_type: app_store # Required for TestFlight
+        bundle_identifier: uYou # Replace yourusername with your actual developer account name
       vars:
-        FLUTTER_VERSION: "3.19.5"  # Match your Flutter version
-        BUNDLE_ID: "com.yourcompany.yourapp"  # Your bundle identifier
-        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
-        XCODE_SCHEME: "Runner"
+        DEVELOPER_TEAM_ID: "2PJHHL4TW5" # Replace with your Apple Developer Team ID
+        APPSTORE_KEY_ISSUERID: "${APPSTORE_KEY_ISSUERID}" # Set this in Codemagic UI
+        APPSTORE_KEY_ID: "${APPSTORE_KEY_ID}" # Set this in Codemagic UI
+        APPSTORE_PRIVATE_KEY: "${APPSTORE_PRIVATE_KEY}" # Set this in Codemagic UI
     scripts:
-      - name: Set up Flutter
+      - name: Set up dependencies
         script: |
-          flutter channel stable
-          flutter upgrade $FLUTTER_VERSION
-          flutter precache --ios
-          flutter doctor -v
-
-      - name: Install dependencies
-        script: flutter pub get
-
-      - name: Run tests
-        script: flutter test
-
-      - name: Build iOS
+          echo "Installing required dependencies"
+          brew install ldid # Install ldid for code signing if needed
+          # Add any other dependencies needed by your build process
+          
+      - name: Set up code signing
         script: |
-          flutter build ios --release --no-codesign
-          cd ios
-          pod install
-
-    building:
-      ios: 
-        name: Build IPA
-        project: ios/Runner.xcodeproj
-        scheme: $XCODE_SCHEME
-        device: any_ios_device
-        signing:
-          automatic:
-            team_id: $APP_STORE_TEAM_ID  # Set in environment variables
-            bundle_identifier: $BUNDLE_ID
-            certificate_type: apple_distribution
-        xcode:
-          project_build_settings:
-            automatic_code_signing: true
-        generate_archive: true
-
+          echo "Setting up code signing for TestFlight"
+          keychain initialize
+          app-store-connect fetch-signing-files "com.yourusername.uYou" --type IOS_APP_STORE --create
+          keychain add-certificates
+          
+      - name: Run build script
+        script: |
+          echo "Running the custom build script"
+          chmod +x ./build.sh
+          ./build.sh
+          
+      - name: Prepare IPA for TestFlight
+        script: |
+          echo "Preparing IPA for TestFlight"
+          # You may need to rename or process the IPA file
+          # The exact commands depend on how your build.sh generates the IPA
+          
+          # If your build.sh doesn't generate a properly signed IPA:
+          # Uncomment and modify these lines:
+          # mv your_output.ipa uYou.ipa
+          # xcrun altool --upload-app -f uYou.ipa --type ios -u $APPSTORE_USERNAME -p $APPSTORE_PASSWORD
+          
+    artifacts:
+      - "*.ipa" # This should capture the final IPA file
+      - "build_output/**/*" # Adjust based on where build.sh places its output
+      
     publishing:
       app_store_connect:
-        auth: api_key
-        key_id: $APP_STORE_KEY_ID
-        issuer_id: $APP_STORE_ISSUER_ID
-        api_key: $APP_STORE_API_KEY
-        submit_to_app_store: true  # Set to false for TestFlight only
+        auth: integration
+        # You can use API Key authentication 
+        api_key: $APPSTORE_PRIVATE_KEY
+        key_id: $APPSTORE_KEY_ID
+        issuer_id: $APPSTORE_KEY_ISSUERID
+        submit_to_testflight: true
+        beta_groups: # Optional: specify TestFlight beta testing groups
+          - "Internal Testers"
+        # submit_to_app_store: false  # Keep this off until ready for App Store
       email:
         recipients:
-          - your.team@example.com
-      scripts:
-        - name: Upload to Firebase
-          script: |  # Example additional step
-            flutter pub run flutterfire_cli:activate
-            firebase appdistribution:distribute build/ios/ipa/*.ipa \
-              --app "$FIREBASE_IOS_APP_ID" \
-              --groups "testers" \
-              --token "$FIREBASE_TOKEN"
-
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - flutter_drive.log
-
-# Required environment variables to set in Codemagic UI:
-# APP_STORE_KEY_ID          - App Store Connect API Key ID
-# APP_STORE_ISSUER_ID       - App Store Connect API Issuer ID
-# APP_STORE_API_KEY         - App Store Connect API Key (content)
-# APP_STORE_TEAM_ID         - Apple Developer Team ID
-# FIREBASE_IOS_APP_ID       - Optional for Firebase distribution
-# FIREBASE_TOKEN            - Optional for Firebase distribution
+          - tomy_abisaad@icloud.com# Replace with your email
+        notify:
+          success: true
+          failure: true
