@@ -1,7 +1,7 @@
 workflows:
   ios-testflight:
     name: iOS TestFlight Build
-    instance_type: mac_mini_m1
+    instance_type: mac_mini_m2
     integrations:
       app_store_connect: Code Magic
     environment:
