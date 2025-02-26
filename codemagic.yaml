@@ -6,7 +6,7 @@ workflows:
       app_store_connect: codemagic # This connects to your App Store Connect integration in Codemagic UI
     environment:
       ios_signing:
-        distribution_type: app_store # Required for TestFlight
+        distribution_type: ios_app_store # Required for TestFlight
         bundle_identifier: uYou # Replace yourusername with your actual developer account name
       vars:
         DEVELOPER_TEAM_ID: "2PJHHL4TW5" # Replace with your Apple Developer Team ID
