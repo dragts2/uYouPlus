@@ -24,7 +24,7 @@ workflows:
         script: |
           echo "Setting up code signing for TestFlight"
           keychain initialize
-          app-store-connect fetch-signing-files "com.yourusername.uYou" --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "uYou" --type IOS_APP_STORE --create
           keychain add-certificates
           
       - name: Run build script
