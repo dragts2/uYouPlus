@@ -1,9 +1,43 @@
+# codemagic.yaml
 workflows:
-
-    sample-workflow:
-
-        name: Codemagic Sample Workflow
-
-        max_build_duration: 120
-
-        instance_type: mac_mini_m2
+  default-workflow:
+    name: Default Workflow
+    environment:
+      groups:
+        # Add environment variables in Codemagic UI (https://codemagic.io/env-vars)
+        - keystore_credentials # Android signing (optional)
+        - app_store_credentials # iOS signing (optional)
+      vars:
+        APP_NAME: "My App" # Replace with your app name
+        FLUTTER_VERSION: "3.19.5" # Your Flutter version
+        ANDROID_KEY_ALIAS: "[your_key_alias]"
+        ANDROID_KEY_PASSWORD: "[your_key_password]"
+        APP_STORE_KEY_ID: "[your_key_id]"
+        APP_STORE_ISSUER_ID: "[your_issuer_id]"
+    scripts:
+      - name: Set up local properties
+        script: | 
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/local.properties"
+      - name: Install Flutter version
+        script: |
+          flutter channel stable
+          flutter upgrade
+          flutter doctor
+      - name: Get dependencies
+        script: flutter pub get
+      - name: Run tests
+        script: flutter test
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com
+      app_store_connect: # iOS publishing (optional)
+        key_id: $APP_STORE_KEY_ID
+        issuer_id: $APP_STORE_ISSUER_ID
+      google_play: # Android publishing (optional)
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: alpha
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
+      - build/ios/ipa/*.ipa
