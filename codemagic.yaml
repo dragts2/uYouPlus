@@ -48,18 +48,11 @@ workflows:
       
     publishing:
       app_store_connect:
-        auth: integration
-        # You can use API Key authentication 
-        api_key: $APPSTORE_PRIVATE_KEY
-        key_id: $APPSTORE_KEY_ID
-        issuer_id: $APPSTORE_KEY_ISSUERID
+        auth: integration # This uses the credentials configured in Codemagic UI
         submit_to_testflight: true
         beta_groups: # Optional: specify TestFlight beta testing groups
           - "Internal Testers"
         # submit_to_app_store: false  # Keep this off until ready for App Store
       email:
         recipients:
-          - tomy_abisaad@icloud.com# Replace with your email
-        notify:
-          success: true
-          failure: true
+          - ${EMAIL} # Use an environment variable for email
