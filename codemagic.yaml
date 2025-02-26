@@ -1,43 +1,77 @@
-# codemagic.yaml
 workflows:
-  default-workflow:
-    name: Default Workflow
+  ios-workflow:
+    name: iOS Production Workflow
     environment:
       groups:
-        # Add environment variables in Codemagic UI (https://codemagic.io/env-vars)
-        - keystore_credentials # Android signing (optional)
-        - app_store_credentials # iOS signing (optional)
+        - app_store_credentials  # Set these in Codemagic UI
       vars:
-        APP_NAME: "My App" # Replace with your app name
-        FLUTTER_VERSION: "3.19.5" # Your Flutter version
-        ANDROID_KEY_ALIAS: "[your_key_alias]"
-        ANDROID_KEY_PASSWORD: "[your_key_password]"
-        APP_STORE_KEY_ID: "[your_key_id]"
-        APP_STORE_ISSUER_ID: "[your_issuer_id]"
+        FLUTTER_VERSION: "3.19.5"  # Match your Flutter version
+        BUNDLE_ID: "com.yourcompany.yourapp"  # Your bundle identifier
+        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
     scripts:
-      - name: Set up local properties
-        script: | 
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/local.properties"
-      - name: Install Flutter version
+      - name: Set up Flutter
         script: |
           flutter channel stable
-          flutter upgrade
-          flutter doctor
-      - name: Get dependencies
+          flutter upgrade $FLUTTER_VERSION
+          flutter precache --ios
+          flutter doctor -v
+
+      - name: Install dependencies
         script: flutter pub get
+
       - name: Run tests
         script: flutter test
+
+      - name: Build iOS
+        script: |
+          flutter build ios --release --no-codesign
+          cd ios
+          pod install
+
+    building:
+      ios: 
+        name: Build IPA
+        project: ios/Runner.xcodeproj
+        scheme: $XCODE_SCHEME
+        device: any_ios_device
+        signing:
+          automatic:
+            team_id: $APP_STORE_TEAM_ID  # Set in environment variables
+            bundle_identifier: $BUNDLE_ID
+            certificate_type: apple_distribution
+        xcode:
+          project_build_settings:
+            automatic_code_signing: true
+        generate_archive: true
+
     publishing:
-      email:
-        recipients:
-          - your.email@example.com
-      app_store_connect: # iOS publishing (optional)
+      app_store_connect:
+        auth: api_key
         key_id: $APP_STORE_KEY_ID
         issuer_id: $APP_STORE_ISSUER_ID
-      google_play: # Android publishing (optional)
-        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: alpha
+        api_key: $APP_STORE_API_KEY
+        submit_to_app_store: true  # Set to false for TestFlight only
+      email:
+        recipients:
+          - your.team@example.com
+      scripts:
+        - name: Upload to Firebase
+          script: |  # Example additional step
+            flutter pub run flutterfire_cli:activate
+            firebase appdistribution:distribute build/ios/ipa/*.ipa \
+              --app "$FIREBASE_IOS_APP_ID" \
+              --groups "testers" \
+              --token "$FIREBASE_TOKEN"
+
     artifacts:
-      - build/**/outputs/**/*.apk
-      - build/**/outputs/**/*.aab
       - build/ios/ipa/*.ipa
+      - flutter_drive.log
+
+# Required environment variables to set in Codemagic UI:
+# APP_STORE_KEY_ID          - App Store Connect API Key ID
+# APP_STORE_ISSUER_ID       - App Store Connect API Issuer ID
+# APP_STORE_API_KEY         - App Store Connect API Key (content)
+# APP_STORE_TEAM_ID         - Apple Developer Team ID
+# FIREBASE_IOS_APP_ID       - Optional for Firebase distribution
+# FIREBASE_TOKEN            - Optional for Firebase distribution
